@@ -7,6 +7,8 @@
 
 namespace Pyz\Zed\DataImport;
 
+use Generated\Shared\Transfer\DataImportConfigurationActionTransfer;
+use Generated\Shared\Transfer\DataImporterConfigurationTransfer;
 use Spryker\Zed\DataImport\DataImportConfig as SprykerDataImportConfig;
 use Spryker\Zed\StockAddressDataImport\StockAddressDataImportConfig;
 
@@ -54,6 +56,18 @@ class DataImportConfig extends SprykerDataImportConfig
     public const IMPORT_TYPE_COMBINED_PRODUCT_STOCK = 'combined-product-stock';
     public const IMPORT_TYPE_COMBINED_PRODUCT_GROUP = 'combined-product-group';
 
+    public const IMPORT_TYPE_COMBINED_PRODUCT_ABSTRACT_EXAMPLE = 'combined-product-abstract-example';
+    public const IMPORT_TYPE_COMBINED_PRODUCT_CONCRETE_EXAMPLE = 'combined-product-concrete-example';
+    public const IMPORT_TYPE_COMBINED_PRODUCT_PRICE_EXAMPLE = 'combined-product-price-example';
+
+    public const IMPORT_TYPE_COMBINED_PRODUCT_ABSTRACT_EXAMPLE_JSON = 'combined-product-abstract-example-json';
+    public const IMPORT_TYPE_COMBINED_PRODUCT_CONCRETE_EXAMPLE_JSON = 'combined-product-concrete-example-json';
+    public const IMPORT_TYPE_COMBINED_PRODUCT_PRICE_EXAMPLE_JSON = 'combined-product-price-example-json';
+
+    protected const EXAMPLE_READER_CSV_DELIMITER = ';';
+    protected const EXAMPLE_READER_CSV_ESCAPE = '"';
+    protected const EXAMPLE_READER_JSON_ENVELOPE = 'data';
+
     /**
      * @return string|null
      */
@@ -72,5 +86,24 @@ class DataImportConfig extends SprykerDataImportConfig
         ];
 
         return array_merge(parent::getFullImportTypes(), $customImportTypes);
+    }
+
+    /**
+     * @api
+     *
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Generated\Shared\Transfer\DataImporterConfigurationTransfer
+     */
+    public function buildImporterConfigurationByExampleDataImportConfigAction(
+        DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+    ): DataImporterConfigurationTransfer {
+        $dataImporterConfigurationTransfer = $this->buildImporterConfigurationByDataImportConfigAction($dataImportConfigurationActionTransfer);
+        $dataImporterConfigurationTransfer->getReaderConfiguration()
+            ->setJsonEnvelope(static::EXAMPLE_READER_JSON_ENVELOPE)
+            ->setCsvDelimiter(static::EXAMPLE_READER_CSV_DELIMITER)
+            ->setCsvEscape(static::EXAMPLE_READER_CSV_ESCAPE);
+
+        return $dataImporterConfigurationTransfer;
     }
 }

@@ -1,0 +1,19 @@
+{
+    "items": [
+        {
+            "column1": "value-1-row-1",
+            "column2": "value-2-row-1",
+            "column3": "value-3-row-1"
+        },
+        {
+            "column1": "value-1-row-2",
+            "column2": "value-2-row-2",
+            "column3": "value-3-row-2"
+        },
+        {
+            "column1": "value-1-row-3",
+            "column2": "value-2-row-3",
+            "column3": "value-3-row-3"
+        }
+    ]
+}
