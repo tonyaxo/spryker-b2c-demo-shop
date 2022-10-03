@@ -1,4 +1,61 @@
-# Spryker B2C Demo Shop
+# Test task
+
+![Alt text](docs/img/request.jpg "Title")
+
+### Part A)
+
+Data-import implemented according to standard Spryker's `DataImport` module. Steps were added for `DataSetStepBroker` to modify data-set for combined-product import process.
+
+Data source readers:
+- Standard CsvReader
+- JsonReader that implements `DataReaderInterface`
+- XmlReader - skipped, it will be the same as JsonReader
+
+Data import command examples:
+```bash
+console data:import --config=/data/data/import/common/combined_product_import_config_csv.yml -t
+```
+```bash
+console data:import --config=/data/data/import/common/combined_product_import_config_json.yml -t
+```
+
+All products will be imported to `demoshop` category.
+
+### Part B)
+
+Standard demo-shop database schema. Interacting with database using Propel.
+
+### Part C)
+
+1. API-endpoint that triggers data import from file `data/import/api/data-import.csv`:
+```bash
+curl -X POST "http://glue.de.spryker.local/data-imports" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"data\":{\"type\":\"string\",\"attributes\":{}}}"
+```
+See: http://swagger.spryker.local/#/data-imports/create-data-imports
+
+2. Endpoint to return a single product from database - Glue product API
+3. Endpoint to return all products from database - Glue product API
+
+### Part D)
+
+1. Start test env
+```bash
+docker/sdk testing
+```
+2. Build test data
+```bash
+vendor/bin/codecept build
+```
+3. Run task related cases
+```bash
+vendor/bin/codecept run -g JsonReaderTest
+```
+
+### Setup
+
+To run project follow instructions below.
+
+## Spryker B2C Demo Shop
 [![Build Status](https://github.com/spryker-shop/b2c-demo-shop/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/spryker-shop/b2c-demo-shop/actions?query=branch:master)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/spryker-shop/b2c-demo-shop/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/spryker-shop/b2c-demo-shop/?branch=master)
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%207.4-8892BF.svg)](https://php.net/)
@@ -172,13 +229,3 @@ For detailed installation instructions of Spryker with Docker, see [Installing S
 
 ## Installation of B2C Demo Shop with Vagrant
 For detailed installation instructions of Spryker with Vagrant, see [Installing with Development Virtual Machine](https://docs.spryker.com/docs/dev-getting-started#installing-spryker-with-development-virtual-machine).
-
-
-
-## Glue API reference
-
-See Glue API reference at [REST API reference](https://docs.spryker.com/docs/rest-api-reference#/rest-api-reference).
-
-## Contributing to the repository
-
-For contribution guidelines, see [Code contribution guide](https://docs.spryker.com/docs/code-contribution-guide#code-contribution-guide).
