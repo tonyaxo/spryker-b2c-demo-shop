@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * This file is part of the Spryker Commerce OS.
+ * For full license information, please view the LICENSE file that was distributed with this source code.
+ */
+
+namespace Pyz\Glue\DataImportsRestApi\Processor\Mapper;
+
+use Generated\Shared\Transfer\DataImporterReportMessageTransfer;
+use Generated\Shared\Transfer\DataImporterReportTransfer;
+use Generated\Shared\Transfer\RestDataImportsAttributesTransfer;
+use Generated\Shared\Transfer\RestErrorMessageTransfer;
+
+class DataImportResponseMapper implements DataImportResponseMapperInterface
+{
+    /**
+     * @param \Generated\Shared\Transfer\DataImporterReportTransfer $dataImporterReportTransfer
+     * @param \Generated\Shared\Transfer\RestDataImportsAttributesTransfer $restDataImportsAttributesTransfer
+     *
+     * @return \Generated\Shared\Transfer\RestDataImportsAttributesTransfer
+     */
+    public function mapDataImporterReportTransferToRestDataImportsAttributesTransfer(
+        DataImporterReportTransfer $dataImporterReportTransfer,
+        RestDataImportsAttributesTransfer $restDataImportsAttributesTransfer
+    ): RestDataImportsAttributesTransfer {
+        return $restDataImportsAttributesTransfer
+            ->setDataImporterReport($dataImporterReportTransfer);
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImporterReportMessageTransfer $dataImporterReportMessageTransfer
+     * @param \Generated\Shared\Transfer\RestErrorMessageTransfer $restErrorMessageTransfer
+     *
+     * @return \Generated\Shared\Transfer\RestErrorMessageTransfer
+     */
+    public function mapDataImporterReportMessageTransferToRestErrorTransfer(
+        DataImporterReportMessageTransfer $dataImporterReportMessageTransfer,
+        RestErrorMessageTransfer $restErrorMessageTransfer
+    ): RestErrorMessageTransfer {
+        return $restErrorMessageTransfer->setDetail($dataImporterReportMessageTransfer->getMessage());
+    }
+}

@@ -9,6 +9,7 @@ namespace Pyz\Zed\DataImport\Business;
 
 use Generated\Shared\Transfer\DataImportConfigurationActionTransfer;
 use Generated\Shared\Transfer\DataImporterConfigurationTransfer;
+use Generated\Shared\Transfer\DataImporterReaderConfigurationTransfer;
 use Pyz\Zed\DataImport\Business\CombinedProduct\Product\CombinedAttributesExtractorStep;
 use Pyz\Zed\DataImport\Business\CombinedProduct\Product\CombinedProductLocalizedAttributesExtractorStep;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductAbstract\CombinedProductAbstractHydratorStep;
@@ -20,6 +21,11 @@ use Pyz\Zed\DataImport\Business\CombinedProduct\ProductAbstractStore\Writer\Comb
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductConcrete\CombinedProductConcreteHydratorStep;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductConcrete\CombinedProductConcreteTypeDataSetCondition;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductConcrete\Writer\CombinedProductConcretePropelDataSetWriter;
+use Pyz\Zed\DataImport\Business\CombinedProduct\ProductExample\CombinedProductExampleMandatoryColumnCondition;
+use Pyz\Zed\DataImport\Business\CombinedProduct\ProductExample\ExampleDataSetHydratorStep;
+use Pyz\Zed\DataImport\Business\CombinedProduct\ProductExample\ExampleDataSetLocalizerStep;
+use Pyz\Zed\DataImport\Business\CombinedProduct\ProductExample\ExampleDataSetModifierStep;
+use Pyz\Zed\DataImport\Business\CombinedProduct\ProductExample\ExampleDataSetNormalizerStep;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductGroup\CombinedProductGroupMandatoryColumnCondition;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductGroup\CombinedProductGroupWriter;
 use Pyz\Zed\DataImport\Business\CombinedProduct\ProductImage\CombinedProductImageHydratorStep;
@@ -40,6 +46,9 @@ use Pyz\Zed\DataImport\Business\Model\Currency\CurrencyWriterStep;
 use Pyz\Zed\DataImport\Business\Model\Customer\CustomerWriterStep;
 use Pyz\Zed\DataImport\Business\Model\DataImporterConditional;
 use Pyz\Zed\DataImport\Business\Model\DataImporterDataSetWriterAwareConditional;
+use Pyz\Zed\DataImport\Business\Model\DataReader\JsonReader\JsonReader;
+use Pyz\Zed\DataImport\Business\Model\DataReader\JsonReader\JsonReaderConfiguration;
+use Pyz\Zed\DataImport\Business\Model\DataReader\JsonReader\JsonReaderConfigurationInterface;
 use Pyz\Zed\DataImport\Business\Model\DataSet\DataSetConditionInterface;
 use Pyz\Zed\DataImport\Business\Model\Discount\DiscountWriterStep;
 use Pyz\Zed\DataImport\Business\Model\DiscountAmount\DiscountAmountWriterStep;
@@ -115,6 +124,7 @@ use Spryker\Zed\DataImport\Business\DataImportBusinessFactory as SprykerDataImpo
 use Spryker\Zed\DataImport\Business\Model\DataImporterInterface;
 use Spryker\Zed\DataImport\Business\Model\DataImportStep\DataImportStepInterface;
 use Spryker\Zed\DataImport\Business\Model\DataReader\DataReaderInterface;
+use Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerInterface;
 use Spryker\Zed\DataImport\Business\Model\DataSet\DataSetWriterCollection;
 use Spryker\Zed\DataImport\Business\Model\DataSet\DataSetWriterInterface;
 use Spryker\Zed\Discount\DiscountConfig;
@@ -214,6 +224,18 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
                 return $this->createNavigationImporter($dataImportConfigurationActionTransfer);
             case DataImportConfig::IMPORT_TYPE_NAVIGATION_NODE:
                 return $this->createNavigationNodeImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_ABSTRACT_EXAMPLE:
+                return $this->createCombinedProductAbstractExampleImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_CONCRETE_EXAMPLE:
+                return $this->createCombinedProductConcreteExampleImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_PRICE_EXAMPLE:
+                return $this->createCombinedProductPriceExampleImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_ABSTRACT_EXAMPLE_JSON:
+                return $this->createCombinedProductAbstractExampleJsonImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_CONCRETE_EXAMPLE_JSON:
+                return $this->createCombinedProductConcreteExampleJsonImporter($dataImportConfigurationActionTransfer);
+            case DataImportConfig::IMPORT_TYPE_COMBINED_PRODUCT_PRICE_EXAMPLE_JSON:
+                return $this->createCombinedProductPriceExampleJsonImporter($dataImportConfigurationActionTransfer);
             default:
                 return null;
         }
@@ -750,6 +772,203 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
      *
      * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
      */
+    public function createCombinedProductAbstractExampleImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        /** @var \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerAwareInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterDataSetWriterAwareInterface $dataImporter */
+        $dataImporter = $this->getConditionalCsvDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductAbstractExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductAbstractDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
+    public function createCombinedProductAbstractExampleJsonImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        /** @var \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerAwareInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterDataSetWriterAwareInterface $dataImporter */
+        $dataImporter = $this->getConditionalJsonDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductAbstractExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductAbstractDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @return \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerInterface
+     */
+    public function createCombinedProductAbstractExampleDataSetStepBroker(): DataSetStepBrokerInterface
+    {
+        $dataSetStepBroker = $this->createTransactionAwareDataSetStepBroker(CombinedProductAbstractHydratorStep::BULK_SIZE);
+
+        return $dataSetStepBroker
+            ->addStep(new ExampleDataSetModifierStep())
+            ->addStep($this->createExampleDataSetHydratorStep())
+            ->addStep(new ExampleDataSetNormalizerStep())
+            ->addStep($this->createExampleDataSetLocalizerStep())
+
+            ->addStep($this->createProductAbstractCheckExistenceStep())
+            ->addStep($this->createAddLocalesStep())
+            ->addStep($this->createAddCategoryKeysStep())
+            ->addStep($this->createTaxSetNameToIdTaxSetStep(CombinedProductAbstractHydratorStep::COLUMN_TAX_SET_NAME))
+            ->addStep($this->createCombinedAttributesExtractorStep())
+            ->addStep($this->createCombinedProductLocalizedAttributesExtractorStep([
+                CombinedProductAbstractHydratorStep::COLUMN_NAME,
+                CombinedProductAbstractHydratorStep::COLUMN_URL,
+                CombinedProductAbstractHydratorStep::COLUMN_DESCRIPTION,
+                CombinedProductAbstractHydratorStep::COLUMN_META_TITLE,
+                CombinedProductAbstractHydratorStep::COLUMN_META_DESCRIPTION,
+                CombinedProductAbstractHydratorStep::COLUMN_META_KEYWORDS,
+            ]))
+            ->addStep(new CombinedProductAbstractHydratorStep());
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
+    public function createCombinedProductConcreteExampleImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        $dataImporter = $this->getConditionalCsvDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductConcreteExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductConcreteDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
+    public function createCombinedProductConcreteExampleJsonImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        $dataImporter = $this->getConditionalJsonDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductConcreteExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductConcreteDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @return \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerInterface
+     */
+    public function createCombinedProductConcreteExampleDataSetStepBroker(): DataSetStepBrokerInterface
+    {
+        $dataSetStepBroker = $this->createTransactionAwareDataSetStepBroker(CombinedProductConcreteHydratorStep::BULK_SIZE);
+
+        return $dataSetStepBroker
+            ->addStep(new ExampleDataSetModifierStep())
+            ->addStep($this->createExampleDataSetHydratorStep())
+            ->addStep(new ExampleDataSetNormalizerStep())
+            ->addStep($this->createExampleDataSetLocalizerStep())
+
+            ->addStep($this->createProductConcreteCheckExistenceStep())
+            ->addStep($this->createAddLocalesStep())
+            ->addStep($this->createCombinedAttributesExtractorStep())
+            ->addStep($this->createProductConcreteAttributesUniqueCheckStep())
+            ->addStep($this->createCombinedProductLocalizedAttributesExtractorStep([
+                CombinedProductConcreteHydratorStep::COLUMN_NAME,
+                CombinedProductConcreteHydratorStep::COLUMN_DESCRIPTION,
+                CombinedProductConcreteHydratorStep::COLUMN_IS_SEARCHABLE,
+            ]))
+            ->addStep(new CombinedProductConcreteHydratorStep(
+                $this->createProductRepository()
+            ));
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
+    public function createCombinedProductPriceExampleImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        $dataImporter = $this->getConditionalCsvDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductPriceExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductPriceDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
+    public function createCombinedProductPriceExampleJsonImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
+    {
+        $dataImporter = $this->getConditionalJsonDataImporterWriterAwareFromConfig(
+            $this->getConfig()->buildImporterConfigurationByExampleDataImportConfigAction($dataImportConfigurationActionTransfer)
+        );
+
+        $dataSetStepBroker = $this->createCombinedProductPriceExampleDataSetStepBroker();
+
+        $dataImporter->setDataSetCondition($this->createCombinedProductAbstractExampleTypeDataSetCondition());
+        $dataImporter->addDataSetStepBroker($dataSetStepBroker);
+        $dataImporter->setDataSetWriter($this->createCombinedProductPriceDataSetWriters());
+
+        return $dataImporter;
+    }
+
+    /**
+     * @return \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerInterface
+     */
+    public function createCombinedProductPriceExampleDataSetStepBroker(): DataSetStepBrokerInterface
+    {
+        $dataSetStepBroker = $this->createTransactionAwareDataSetStepBroker(CombinedProductPriceHydratorStep::BULK_SIZE);
+
+        return $dataSetStepBroker
+            ->addStep(new ExampleDataSetModifierStep())
+            ->addStep($this->createExampleDataSetHydratorStep())
+            ->addStep(new ExampleDataSetNormalizerStep())
+            ->addStep($this->createExampleDataSetLocalizerStep())
+
+            ->addStep(new CombinedProductPriceHydratorStep(
+                $this->getPriceProductFacade(),
+                $this->getUtilEncodingService()
+            ));
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataImporterInterface
+     */
     public function createProductAbstractStoreImporter(DataImportConfigurationActionTransfer $dataImportConfigurationActionTransfer)
     {
         /** @var \Spryker\Zed\DataImport\Business\Model\DataSet\DataSetStepBrokerAwareInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterInterface|\Spryker\Zed\DataImport\Business\Model\DataImporterDataSetWriterAwareInterface $dataImporter */
@@ -807,6 +1026,22 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
         return new ProductConcreteAttributesUniqueCheckStep(
             $this->createProductRepository(),
             $this->getUtilEncodingService()
+        );
+    }
+
+    public function createExampleDataSetHydratorStep(): DataImportStepInterface
+    {
+        // TODO replace with $this->getStoreFacade(),
+        return new ExampleDataSetHydratorStep(
+            Store::getInstance(),
+        );
+    }
+
+    public function createExampleDataSetLocalizerStep(): DataImportStepInterface
+    {
+        // TODO replace with $this->getStoreFacade(),
+        return new ExampleDataSetLocalizerStep(
+            Store::getInstance(),
         );
     }
 
@@ -1384,6 +1619,33 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
     }
 
     /**
+     * @param \Generated\Shared\Transfer\DataImporterReaderConfigurationTransfer $dataImporterReaderConfigurationTransfer
+     *
+     * @return \Spryker\Zed\DataImport\Business\Model\DataReader\DataReaderInterface
+     */
+    public function createJsonReaderFromConfig(DataImporterReaderConfigurationTransfer $dataImporterReaderConfigurationTransfer)
+    {
+        $jsonReaderConfiguration = new JsonReaderConfiguration(
+            $dataImporterReaderConfigurationTransfer,
+            $this->createFileResolver(),
+        );
+
+        return $this->createJsonReader($jsonReaderConfiguration);
+    }
+
+    /**
+     * @param \Pyz\Zed\DataImport\Business\Model\DataReader\JsonReader\JsonReaderConfigurationInterface $jsonReaderConfiguration
+     *
+     * @return \Pyz\Zed\DataImport\Business\Model\DataReader\JsonReader\JsonReader|\Spryker\Zed\DataImport\Business\Model\DataReader\DataReaderInterface
+     */
+    public function createJsonReader(JsonReaderConfigurationInterface $jsonReaderConfiguration)
+    {
+        $jsonReader = new JsonReader($jsonReaderConfiguration, $this->createDataSet());
+
+        return $jsonReader;
+    }
+
+    /**
      * @param \Generated\Shared\Transfer\DataImporterConfigurationTransfer $dataImporterConfigurationTransfer
      *
      * @return \Pyz\Zed\DataImport\Business\Model\DataImporterConditional
@@ -1405,6 +1667,18 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
         $csvReader = $this->createCsvReaderFromConfig($dataImporterConfigurationTransfer->getReaderConfiguration());
 
         return $this->createDataImporterWriterAwareConditional($dataImporterConfigurationTransfer->getImportType(), $csvReader);
+    }
+
+    /**
+     * @param \Generated\Shared\Transfer\DataImporterConfigurationTransfer $dataImporterConfigurationTransfer
+     *
+     * @return \Pyz\Zed\DataImport\Business\Model\DataImporterDataSetWriterAwareConditional
+     */
+    public function getConditionalJsonDataImporterWriterAwareFromConfig(DataImporterConfigurationTransfer $dataImporterConfigurationTransfer)
+    {
+        $jsonReader = $this->createJsonReaderFromConfig($dataImporterConfigurationTransfer->getReaderConfiguration());
+
+        return $this->createDataImporterWriterAwareConditional($dataImporterConfigurationTransfer->getImportType(), $jsonReader);
     }
 
     /**
@@ -1708,6 +1982,14 @@ class DataImportBusinessFactory extends SprykerDataImportBusinessFactory
     protected function createCombinedProductAbstractTypeDataSetCondition(): DataSetConditionInterface
     {
         return new CombinedProductAbstractTypeDataSetCondition();
+    }
+
+    /**
+     * @return \Pyz\Zed\DataImport\Business\Model\DataSet\DataSetConditionInterface
+     */
+    protected function createCombinedProductAbstractExampleTypeDataSetCondition(): DataSetConditionInterface
+    {
+        return new CombinedProductExampleMandatoryColumnCondition();
     }
 
     /**

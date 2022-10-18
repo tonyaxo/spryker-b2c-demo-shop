@@ -1,0 +1,10 @@
+# Example of a B2C demo shop 'Combined product' data import.
+version: 0
+
+actions:
+  - data_entity: combined-product-abstract-example
+    source: data/import/common/example_data.csv
+  - data_entity: combined-product-concrete-example
+    source: data/import/common/example_data.csv
+  - data_entity: combined-product-price-example
+    source: data/import/common/example_data.csv
